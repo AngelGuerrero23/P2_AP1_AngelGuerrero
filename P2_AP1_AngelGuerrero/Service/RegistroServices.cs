@@ -7,9 +7,9 @@ namespace P2_AP1_AngelGuerrero.Service;
 
 public class RegistroServices(IDbContextFactory<Contexto> DbFactory) 
 {
-    public async Task<List<Generico>>Listar(Expression<Func<Generico, bool>> criterio)
+    public async Task<List<Pedidos>>Listar(Expression<Func<Pedidos, bool>> criterio)
     {
         await using var contexto = await DbFactory.CreateDbContextAsync();
-        return await contexto.Generico.Where(criterio).AsNoTracking().ToListAsync();
+        return await contexto.Pedidos.Where(criterio).AsNoTracking().ToListAsync();
     }
 }
