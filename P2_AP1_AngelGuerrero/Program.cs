@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using P2_AP1_AngelGuerrero.Components;
 using P2_AP1_AngelGuerrero.DAL;
+using P2_AP1_AngelGuerrero.Service;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,6 +13,8 @@ var ConStr = builder.Configuration.GetConnectionString("ConStr");
 
 builder.Services.AddDbContextFactory<Contexto>(options=>options.UseSqlite(ConStr));
 
+builder.Services.AddScoped<Contexto>();
+builder.Services.AddScoped<RegistroServices>();
 
 var app = builder.Build();
 
