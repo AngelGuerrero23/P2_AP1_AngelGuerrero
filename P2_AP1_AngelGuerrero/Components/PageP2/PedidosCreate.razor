@@ -1,0 +1,201 @@
+﻿@page "/Pedidos/Create"
+@inject NavigationManager navigationManager
+@rendermode InteractiveServer
+@inject RegistroServices registroServices
+
+<PageTitle>Crear Pedido</PageTitle>
+<EditForm Model="Pedido" OnValidSubmit="Guardar" FormName="FormPedido">
+    <DataAnnotationsValidator />
+
+    <div class="container">
+        <div class="card shadow">
+            <div class="card-header text-black">
+                <div class="justify-content-between align-items-center">
+                    <h3>Crear Pedido</h3>
+                </div>
+            </div>
+
+            <div class="card-body">
+
+                <div class="mt-2">
+                    <div class="col-3">
+                        <label class="form-label"><strong>PedidoId</strong></label>
+                        <InputNumber class="form-control" @bind-Value="Pedido.PedidoId" readonly></InputNumber>
+                        <ValidationMessage For="@(() => Pedido.PedidoId)" />
+                    </div>
+                    <label class="form-label"><strong>Fecha</strong></label>
+                    <InputDate class="form-control" @bind-Value="Pedido.Fecha"></InputDate>
+                    <ValidationMessage For="@(() => Pedido.Fecha)" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>Nombre del Cliente</strong></label>
+                    <InputText class="form-control" @bind-Value="Pedido.NombreCliente"></InputText>
+                    <ValidationMessage For="@(() => Pedido.NombreCliente)" />
+                </div>
+
+                
+
+                <div class="border border-success p-3 mt-3">
+                    <h5>Detalles del Pedido</h5>
+
+                    <div class="row align-items-center mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Componente:</label>
+                            <InputSelect class="form-control form-select" @bind-Value="pedidosDetalle.ComponenteId">
+                                <option value="0">---Seleccione un componente---</option>
+                                @foreach (var componente in tiposComponente)
+                                {
+                                    <option value="@componente.ComponenteId">
+                                        @componente.ComponenteId - @componente.Descripcion - @componente.Existencia
+                                    </option>
+                                }
+                            </InputSelect>
+                        </div>
+
+                        <div class="col-md-2">
+                            <label class="form-label"><strong>Cantidad</strong></label>
+                            <InputNumber class="form-control" @bind-Value="pedidosDetalle.Cantidad"></InputNumber>
+                        </div>
+
+                        <div class="col-md-2">
+                            <label class="form-label"><strong>Precio</strong></label>
+                            <InputNumber class="form-control" @bind-Value="pedidosDetalle.precio"></InputNumber>
+                        </div>
+
+
+                        <div class="col-md-2">
+                            <button type="button" class="btn btn-success w-100" @onclick="AgregarDetalle">
+                                <span class="bi bi-plus-circle me-1"></span> Agregar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <table class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>Componente</th>
+                            <th>Cantidad</th>
+                            <th>Precio</th>
+                            <th>Importe</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var detalle in Pedido.GetPedidosDetalles)
+                        {
+                            <tr>
+                                <td>@tiposComponente.FirstOrDefault(t => t.ComponenteId == detalle.ComponenteId)?.Descripcion</td>
+                                <td>@detalle.Cantidad</td>
+                                <td>RD$@detalle.precio.ToString("N2")</td>
+                                <td>RD$@((detalle.Cantidad * detalle.precio).ToString("N2"))</td>
+                                <td>
+                                    <button type="button" class="btn btn-danger btn-sm" @onclick="() => EliminarPedidoDetalles(detalle)">
+                                        <span class="oi oi-trash"></span>Eliminar
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+
+                <div class="alert alert-info mt-1">
+                    <strong>Total Pedidos: </strong> @Pedido.GetPedidosDetalles.Sum(d => d.Cantidad)
+                    <strong>Importe Total: </strong> RD$@Pedido.Total.ToString("N2")
+                </div>
+            </div>
+
+            <div class="card-footer text-center mt-2">
+                <a href="/Pedidos/Index" class="btn btn-secondary">
+                    <span class="bi bi-arrow-left"></span> Volver
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <span class="bi bi-floppy"></span> Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+</EditForm>
+
+@if (!string.IsNullOrEmpty(mensaje))
+{
+    <div class="alert alert-warning mt-3">
+        @mensaje
+    </div>
+}
+
+@code {
+    public int PedidoId{ get; set; }
+    public string mensaje{ get; set; }
+    public Pedidos Pedido { get; set; } = new Pedidos();
+    public List<Componente> tiposComponente { get; set; } = new List<Componente>();
+    public List<PedidosDetalle[]> pedidosDetalles { get; set; } = new List<PedidosDetalle[]>();
+    public PedidosDetalle pedidosDetalle { get; set; } = new PedidosDetalle();
+
+    protected override async Task OnInitializedAsync()
+    {
+        Pedido.Fecha = DateTime.Now;
+    }
+    public async Task Guardar()
+    {
+
+        if (!Pedido.GetPedidosDetalles.Any())
+        {
+            return;
+        }
+        var creado = await registroServices.Guardar(Pedido);
+
+        if (creado)
+        {
+
+            navigationManager.NavigateTo("/Pedidos/Index");
+
+        }
+        else
+        {
+            return;
+        }
+    }
+
+    private void AgregarDetalle()
+    {
+        if (pedidosDetalle.Id == 0)
+        {
+            mensaje = "Debe seleccionar uno";
+            return;
+        }
+        if (pedidosDetalle.Cantidad <= 0 || pedidosDetalle.precio <= 0)
+        {
+            mensaje = "El detalle y precio debe ser mayor a 0";
+            return;
+        }
+
+        var tipo = tiposComponente.FirstOrDefault(t => t.ComponenteId == pedidosDetalle.Id);
+        if (tipo != null)
+        {
+            var nuevoDetalle = new PedidosDetalle
+            {
+                PedidoId = pedidosDetalle.PedidoId,
+                Cantidad = pedidosDetalle.Cantidad,
+                precio = pedidosDetalle.precio
+            };
+
+            Pedido.GetPedidosDetalles.Add(nuevoDetalle);
+            Pedido.Total = Pedido.GetPedidosDetalles.Sum(d => d.Cantidad * d.precio);
+            pedidosDetalle = new PedidosDetalle { PedidoId = 0 };
+        }
+        else
+        {
+            mensaje = "No se pudo crear los huacales";
+        }
+    }
+
+    public void EliminarPedidoDetalles(PedidosDetalle detalles)
+    {
+        Pedido.GetPedidosDetalles.Remove(detalles);
+        pedidosDetalle = detalles;
+    }
+
+
+}
